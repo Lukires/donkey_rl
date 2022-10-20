@@ -68,11 +68,11 @@ class DQNAgent:
     def build_model(self):
         print("Now we build the model")
         model = Sequential()
-        model.add(Convolution2D(32, 8, 8, subsample=(4, 4), border_mode='same',input_shape=(img_rows,img_cols,img_channels)))  #80*80*4
+        model.add(Convolution2D(32, (8, 8), strides=(4, 4), padding='same',input_shape=(img_rows,img_cols,img_channels)))  #80*80*4
         model.add(Activation('relu'))
-        model.add(Convolution2D(64, 4, 4, subsample=(2, 2), border_mode='same'))
+        model.add(Convolution2D(64, (4, 4), strides=(2, 2), padding='same'))
         model.add(Activation('relu'))
-        model.add(Convolution2D(64, 3, 3, subsample=(1, 1), border_mode='same'))
+        model.add(Convolution2D(64, (3, 3), strides=(1, 1), padding='same'))
         model.add(Activation('relu'))
         model.add(Flatten())
         model.add(Dense(512))
@@ -225,9 +225,9 @@ def linear_unbin(arr):
 
 if __name__ == "__main__":
 
-    config = tf.ConfigProto()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
-    sess = tf.Session(config=config)
+    sess = tf.compat.v1.Session(config=config)
     K.set_session(sess)
 
     env = gym.make("donkey-generated-roads-v0")
