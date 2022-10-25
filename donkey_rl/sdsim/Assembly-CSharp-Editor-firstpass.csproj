@@ -309,8 +309,14 @@
      <Reference Include="Newtonsoft.Json">
      <HintPath>/home/lukas/projects/donkey_rl/donkey_rl/sdsim/Library/PackageCache/com.unity.nuget.newtonsoft-json@3.0.2/Runtime/Newtonsoft.Json.dll</HintPath>
      </Reference>
+     <Reference Include="NugetForUnity">
+     <HintPath>/home/lukas/projects/donkey_rl/donkey_rl/sdsim/Assets/NuGet/Editor/NugetForUnity.dll</HintPath>
+     </Reference>
      <Reference Include="unityplastic">
      <HintPath>/home/lukas/projects/donkey_rl/donkey_rl/sdsim/Library/PackageCache/com.unity.collab-proxy@1.17.2/Lib/Editor/PlasticSCM/unityplastic.dll</HintPath>
+     </Reference>
+     <Reference Include="websocket-sharp">
+     <HintPath>/home/lukas/projects/donkey_rl/donkey_rl/sdsim/Assets/Packages/WebSocketSharp-netstandard.1.0.1/lib/netstandard2.0/websocket-sharp.dll</HintPath>
      </Reference>
      <Reference Include="nunit.framework">
      <HintPath>/home/lukas/projects/donkey_rl/donkey_rl/sdsim/Library/PackageCache/com.unity.ext.nunit@1.0.6/net35/unity-custom/nunit.framework.dll</HintPath>
