@@ -237,7 +237,7 @@ class DonkeyUnitySim(object):
         
         #socketio = SocketIO( app, logger=True, engineio_logger=True , async_handlers = True)
         # wrap Flask application with engineio's middleware
-        self.app = socketio.Middleware(sio, self.app)
+        self.app = socketio.WSGIApp(sio, self.app)
         #sio.run(app, host=address[0], port=address[1])
         # deploy as an eventlet WSGI server
         try:
