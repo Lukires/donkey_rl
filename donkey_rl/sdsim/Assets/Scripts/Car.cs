@@ -2,13 +2,16 @@
 using System.Collections;
 
 
-public class Car : MonoBehaviour, ICar {
+public class Car : MonoBehaviour, ICar{
 
+	public CarSpawner carSpawner;
 	public WheelCollider[] wheelColliders;
 	public Transform[] wheelMeshes;
 
+	public float maxSpeed = 30f;
 	public float maxTorque = 50f;
-	public float maxSpeed = 10f;
+	public float maxBreakTorque = 50f;
+	public AnimationCurve torqueCurve;
 
 	public Transform centrOfMass;
 
@@ -17,14 +20,15 @@ public class Car : MonoBehaviour, ICar {
 	public float requestSteering = 0f;
 
 	public Vector3 acceleration = Vector3.zero;
+	public Vector3 velocity = Vector3.zero;
 	public Vector3 prevVel = Vector3.zero;
 
 	public Vector3 startPos;
 	public Quaternion startRot;
+	private Quaternion rotation = Quaternion.identity;
+	private Vector3 gyro = Vector3.zero;
 
-	public float length = 1.7f;
-
-	Rigidbody rb;
+	public Rigidbody rb;
 
 	//for logging
 	public float lastSteer = 0.0f;
@@ -38,6 +42,7 @@ public class Car : MonoBehaviour, ICar {
 
 	//name of the last object we hit.
 	public string last_collision = "none";
+
 
 	// Use this for initialization
 	void Awake () 
@@ -53,8 +58,9 @@ public class Car : MonoBehaviour, ICar {
 		requestSteering = 0f;
 
 		SavePosRot();
-
-        maxSteer = PlayerPrefs.GetFloat("max_steer", 16.0f);       
+		
+		// had to disable this because PID max steering was affecting the global max_steering
+        // maxSteer = PlayerPrefs.GetFloat("max_steer", 16.0f);
 	}
 
 	public void SavePosRot()
@@ -78,9 +84,9 @@ public class Car : MonoBehaviour, ICar {
     public void SetMaxSteering(float val)
     {
         maxSteer = val;
-
-        PlayerPrefs.SetFloat("max_steer", maxSteer);
-        PlayerPrefs.Save();
+		// had to disable this because PID max steering was affecting the global max_steering
+        // PlayerPrefs.SetFloat("max_steer", maxSteer);
+        // PlayerPrefs.Save();
     }
 
     public float GetMaxSteering()
@@ -100,20 +106,25 @@ public class Car : MonoBehaviour, ICar {
 		rb.rotation = rot;
 
 		//just setting it once doesn't seem to work. Try setting it multiple times..
-		StartCoroutine(KeepSetting(pos, rot, 10));
+		StartCoroutine(KeepSetting(pos, rot, 1));
 	}
 
 	IEnumerator KeepSetting(Vector3 pos, Quaternion rot, int numIter)
 	{
 		while(numIter > 0)
 		{
+			rb.isKinematic = true;
+			
+			yield return new WaitForFixedUpdate();
+
 			rb.position = pos;
 			rb.rotation = rot;
 			transform.position = pos;
 			transform.rotation = rot;
 
 			numIter--;
-			yield return new WaitForFixedUpdate();
+
+			rb.isKinematic = false;
 		}
 	}
 
@@ -139,14 +150,17 @@ public class Car : MonoBehaviour, ICar {
 
 	public Vector3 GetVelocity()
 	{
-		return rb.velocity;
+		return velocity;
 	}
 
 	public Vector3 GetAccel()
 	{
 		return acceleration;
 	}
-
+	public Vector3 GetGyro()
+	{
+	  return gyro;
+  	}
 	public float GetOrient ()
 	{
 		Vector3 dir = transform.forward;
@@ -193,11 +207,16 @@ public class Car : MonoBehaviour, ICar {
 	{
 		lastSteer = requestSteering;
 		lastAccel = requestTorque;
+		prevVel = velocity;
+		velocity = transform.InverseTransformDirection(rb.velocity);
+		acceleration = (velocity - prevVel)/Time.deltaTime;
+		gyro = rb.angularVelocity;
+		rotation = rb.rotation;
 
-		float throttle = requestTorque * maxTorque;
+		// use the torque curve
+		float throttle = torqueCurve.Evaluate(velocity.magnitude / maxSpeed) * requestTorque * maxTorque;
 		float steerAngle = requestSteering;
-        float brake = requestBrake;
-
+        float brake = requestBrake * maxBreakTorque;
 
 		//front two tires.
 		wheelColliders[2].steerAngle = steerAngle;
@@ -206,19 +225,10 @@ public class Car : MonoBehaviour, ICar {
 		//four wheel drive at the moment
 		foreach(WheelCollider wc in wheelColliders)
 		{
-			if(rb.velocity.magnitude < maxSpeed)
-			{
-				wc.motorTorque = throttle;
-			}
-			else
-			{
-				wc.motorTorque = 0.0f;
-			}
-
-			wc.brakeTorque = 400f * brake;
+			wc.motorTorque = throttle;
+			wc.brakeTorque = brake;
 		}
 
-		acceleration = rb.velocity - prevVel;
 	}
 
 	void FlipUpright()

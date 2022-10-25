@@ -1,7 +1,8 @@
-﻿using SocketIO;
+using SocketIO;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
+using tk;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
@@ -10,10 +11,12 @@ using UnityEngine.SceneManagement;
 public class SocketIODriveClient : MonoBehaviour {
 
     public GameObject carObj;
-    public ICar car;
-
+    public CarSpawner carSpawner;
+    
     public PathManager pm;
-    public Camera camSensor;
+
+    private ICar car;
+    public CameraSensor camSensor;
     private SocketIOComponent _socket;
     bool collectData = false;
 
@@ -30,12 +33,16 @@ public class SocketIODriveClient : MonoBehaviour {
     private bool asynchronous = true;
 
     private float time_step = 0.1f;
+    int iActiveSpan = 0;
 
 
     // Use this for initialization
     void Start()
     {
         OnLoaded();
+        carSpawner.EnsureOneCar();
+        car = carSpawner.cars[0].GetComponent<ICar>();
+        //camSensor = tcpCarHandler.camSensorB.GetComponent<CameraSensor>();
     }
 
     private void OnEnable()
@@ -59,7 +66,7 @@ public class SocketIODriveClient : MonoBehaviour {
     {
         if (messages != null)
             return;
-
+        
         _socket = GetComponent<SocketIOComponent>();
         _socket.On("open", OnOpen);
         _socket.On("Steer", OnSteer);
@@ -70,8 +77,6 @@ public class SocketIODriveClient : MonoBehaviour {
         _socket.On("Settings", onSettings);
 
         messages = new List<SimMessage>();
-
-        car = carObj.GetComponent<ICar>();
     }
 
     //sending from the main thread was really slowing things down. Not sure why.
@@ -116,7 +121,7 @@ public class SocketIODriveClient : MonoBehaviour {
             m.json.AddField("steering_angle", car.GetSteering());
             m.json.AddField("throttle", car.GetThrottle());
             m.json.AddField("speed", car.GetVelocity().magnitude);
-            m.json.AddField("image", System.Convert.ToBase64String(CameraHelper.CaptureFrame(camSensor)));
+            m.json.AddField("image", System.Convert.ToBase64String(CameraHelper.CaptureFrame(camSensor.sensorCam)));
             
             m.json.AddField("hit", car.GetLastCollision());
             car.ClearLastCollision();
@@ -131,13 +136,13 @@ public class SocketIODriveClient : MonoBehaviour {
             if(pm != null)
             {
                 float cte = 0.0f;
-                if(pm.path.GetCrossTrackErr(tm.position, ref cte))
+                if(pm.carPath.GetCrossTrackErr(tm.position, ref iActiveSpan, ref cte))
                 {
                     m.json.AddField("cte", cte);
                 }
                 else
                 {
-                    pm.path.ResetActiveSpan();
+                    iActiveSpan = 0;
                     m.json.AddField("cte", 0.0f);
                 }
             }

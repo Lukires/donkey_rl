@@ -1,4 +1,4 @@
-﻿using SocketIO;
+using SocketIO;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
@@ -24,7 +24,7 @@ public class SocketIOMenuClient : MonoBehaviour {
 
     public SceneLoader loader;
 
-    public bool bVerbose = false;
+    public bool bVerbose = true;
 
     public bool bConnected = false;
 
@@ -185,19 +185,7 @@ public class SocketIOMenuClient : MonoBehaviour {
         GlobalState.bAutoHideSceneMenu = true;
 
         string scene_name = jsonObject.GetField("scene_name").str;
-
-        if(scene_name == "generated_road")
-        {
-            loader.LoadGenerateRoadScene();
-        }
-        else if (scene_name == "warehouse")
-        {
-            loader.LoadWarehouseScene();
-        }
-        else if (scene_name == "sparkfun_avc")
-        {
-            loader.LoadAVCScene();
-        }
+        loader.LoadScene(scene_name);
     }
 
     void onQuitApp(SocketIOEvent obj)

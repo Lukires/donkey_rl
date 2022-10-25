@@ -3,6 +3,7 @@ file: donkey_sim.py
 author: Tawn Kramer
 date: 2018-08-31
 '''
+from distutils.log import debug
 import json
 import shutil
 import base64
@@ -19,8 +20,11 @@ import eventlet
 import eventlet.wsgi
 from PIL import Image
 from flask import Flask
+from flask_socketio import SocketIO, send, emit
 
-sio = socketio.Server()
+#app = Flask("DonkeyUnitySim")
+#sio = SocketIO(app, logger=True, engineio_logger=True , async_handlers = True)
+sio = socketio.Server(logger=True, engineio_logger=True)
 
 # This is to monkey_patch python standard library "magically". Without it server cannot actively push messages to Unity client through emit()
 # Reference: https://github.com/miguelgrinberg/Flask-SocketIO/issues/357
@@ -36,12 +40,10 @@ class DonkeyUnitySim(object):
         self.time_step = time_step
 
         self.proc1 = None  # The process that is started. If None, no process was started
-
+        self.app = Flask("DonkeyUnitySim")
         # sensor size - height, width, depth
         self.camera_img_size=(120, 160, 3)
         
-        self.app = Flask("DonkeyUnitySim")
-
         self.reset(intial=True)
 
     ## ------- Env interface ---------- ##
@@ -72,10 +74,10 @@ class DonkeyUnitySim(object):
         self.send_control(action[0], action[1])        
 
     def observe(self):
+        print("observe")
         assert(self.wait_for_obs)
         while not self.have_new_obs:
             time.sleep(0.0001)
-
         observation = self.image_array
         done = self.is_game_over()
         reward = self.calc_reward(done)
@@ -157,23 +159,23 @@ class DonkeyUnitySim(object):
             print("launch string is Null")
         else:
             print("This is the launch string {}".format(launch_string))
-
+        
+        # TEMP DONT START UNITY APP
             # Launch Unity environment
-            if headless:
-                self.proc1 = subprocess.Popen(
-                    [launch_string,'-nographics', '-batchmode'])
-            else:
-                self.proc1 = subprocess.Popen(
-                    [launch_string])
+            #if headless:
+            #    self.proc1 = subprocess.Popen(
+            #        [launch_string,'-nographics', '-batchmode'])
+            #else:
+            #    self.proc1 = subprocess.Popen(
+            #        [launch_string])
 
 
     ## ------ Websocket interface ----------- ##
-
-    def communicator(self, address = ('0.0.0.0', 9090)):
+    def communicator(self, address = ('0.0.0.0', 9099)):
         """
         Communicate with Unity through Websocket. Set up Websocket Server and register events listeners
         """
-
+        print("Setup communicator")
         @sio.on('Telemetry')
         def telemetry(sid, data):
             if data:
@@ -211,26 +213,32 @@ class DonkeyUnitySim(object):
             self.send_settings({"step_mode" : step_mode.__str__(),\
                 "time_step" : self.time_step.__str__()})
 
-        @sio.on('ProtocolVersion')
+        @sio.on('ProtocolVersion', namespace=None)
         def on_proto_version(sid, environ):
             print("ProtocolVersion ", sid)
 
         @sio.on('SceneSelectionReady')
         def on_fe_loaded(sid, environ):
+            print("SceneSelectionReady ", sid)
             self.send_get_scene_names()
 
         @sio.on('SceneLoaded')
         def on_scene_loaded(sid, data):
+            print("SceneLoaded ", sid)
             self.take_action((0, 0))
 
         @sio.on('SceneNames')
         def on_scene_names(sid, data):
             names = data['scene_names']
+            print("SceneNames ", names)
+            print(names)
             self.send_load_scene(names[self.level])
-
+        
+        
+        #socketio = SocketIO( app, logger=True, engineio_logger=True , async_handlers = True)
         # wrap Flask application with engineio's middleware
         self.app = socketio.Middleware(sio, self.app)
-
+        #sio.run(app, host=address[0], port=address[1])
         # deploy as an eventlet WSGI server
         try:
             eventlet.wsgi.server(eventlet.listen(address), self.app)

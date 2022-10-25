@@ -169,6 +169,6 @@ if __name__ == "__main__":
         print("RECORDING THIS RUN ...")
 
     model_fnm = args.model
-    address = ('0.0.0.0', 9090)
+    address = ('0.0.0.0', 9099)
     run_steering_server(address, model_fnm, image_folder=args.image_folder)
     

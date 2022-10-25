@@ -52,7 +52,7 @@ if __name__ == "__main__":
   parser.add_argument('model', type=str, help='model name. no json or keras.')
   args = parser.parse_args()
  
-  address = ('0.0.0.0', 9090)
+  address = ('0.0.0.0', 9099)
   
   try:
     predict_server.run_steering_server(address, args.model, image_folder=None, image_cb=display_img)   

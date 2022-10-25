@@ -5,33 +5,43 @@ using UnityStandardAssets.Vehicles.Car;
 
 public class MenuHandler : MonoBehaviour {
 
-	public GameObject PIDContoller;
-	public GameObject Logger;
-	public GameObject NetworkSteering;
-	public GameObject menuPanel;
-	public GameObject stopPanel;
-	public GameObject exitPanel;
+    public GameObject PIDContoller;
+    public GameObject Logger;
+    public GameObject NetworkSteering;
+    public GameObject menuPanel;
+    public GameObject stopPanel;
+    public GameObject exitPanel;
     public GameObject carJSControl;
-	public GameObject PIDControls;
-
+    public GameObject PIDControls;
     public TrainingManager trainingManager;
 
     public void Awake()
     {
-        //keep it processing even when not in focus.
-        Application.runInBackground = true;
+        //auto link
+        Canvas canvas = GameObject.FindObjectOfType<Canvas>();
+        menuPanel = getChildGameObject(canvas.gameObject, "Panel Menu");
+        stopPanel = getChildGameObject(canvas.gameObject, "StopPanel");
+        exitPanel = getChildGameObject(canvas.gameObject, "ExitPanel");
+        PIDControls = getChildGameObject(canvas.gameObject, "PIDPanel");
 
-        //Set desired frame rate as high as possible.
-        Application.targetFrameRate = 60;
-
-		menuPanel.SetActive(true);
+        menuPanel.SetActive(true);
         stopPanel.SetActive(false);
         exitPanel.SetActive(true);
     }
+    static public GameObject getChildGameObject(GameObject fromGameObject, string withName)
+    {
+        //Author: Isaac Dart, June-13.
+        Transform[] ts = fromGameObject.transform.GetComponentsInChildren<Transform>(true);
+        foreach (Transform t in ts) if (t.gameObject.name == withName) return t.gameObject;
 
-	public void OnPidGenerateTrainingData()
+        Debug.LogError("Failed to find: " + withName);
+        return null;
+    }
+
+    public void OnPidGenerateTrainingData()
 	{
-		Logger.SetActive(true);
+        if(Logger != null)
+		    Logger.SetActive(true);
         
 		if(PIDContoller != null)
 			PIDContoller.SetActive(true);
@@ -49,7 +59,8 @@ public class MenuHandler : MonoBehaviour {
 
 	public void OnManualGenerateTrainingData()
 	{
-		Logger.SetActive(true);
+		if(Logger != null)
+		    Logger.SetActive(true);
         
 		if(PIDContoller != null)
 			PIDContoller.SetActive(false);
@@ -73,10 +84,17 @@ public class MenuHandler : MonoBehaviour {
 		if(PIDControls != null)
 			PIDControls.SetActive(false);
 		
-		NetworkSteering.SetActive(true);
+		if(NetworkSteering != null)    
+            NetworkSteering.SetActive(true);
+
 		menuPanel.SetActive(false);
         stopPanel.SetActive(true);
         exitPanel.SetActive(false);
+
+        CarSpawner spawner = GameObject.FindObjectOfType<CarSpawner>();
+
+        if (spawner)
+            spawner.RemoveGhostCars();
     }
 
 	public void OnPidDrive()
@@ -134,13 +152,20 @@ public class MenuHandler : MonoBehaviour {
 		if(PIDControls != null)
 			PIDControls.SetActive(false);
 
-        Logger.SetActive(false);
-        NetworkSteering.SetActive(false);
+        if(Logger != null)
+		    Logger.SetActive(false);
 
+        if(NetworkSteering != null)    
+            NetworkSteering.SetActive(false);
 
         menuPanel.SetActive(true);
         stopPanel.SetActive(false);
         exitPanel.SetActive(true);
+
+        CarSpawner spawner = GameObject.FindObjectOfType<CarSpawner>();
+
+        if (spawner)
+            spawner.EnsureOneCar();
     }
 
 }
